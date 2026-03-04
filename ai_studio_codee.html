@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aesthetic Pomodoro Timer</title>
+    <!-- Moderni fontovi i ikone -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        :root {
+            /* Malo tamnija pozadina stakla za savršen kontrast brojeva */
+            --glass-bg: rgba(15, 15, 15, 0.55);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --text-color: #ffffff;
+            --primary-btn: rgba(255, 255, 255, 0.95);
+            --primary-btn-text: #121212;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background-color: #191919; 
+            transition: background 0.8s ease;
+        }
+
+        /* --- KOMPAKTNI KONTEJNER --- */
+        .container {
+            position: relative;
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px 30px; 
+            text-align: center;
+            box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.4);
+            width: 90%;
+            /* Malo prošireno da veliki brojevi komotno stanu */
+            max-width: 380px; 
+            display: flex;
+            flex-direction: column;
+            gap: 12px; 
+            animation: fadeIn 1s ease-out;
+            z-index: 10;
+        }
+
+        /* --- SAT (Gore lijevo) --- */
+        .real-clock {
+            position: absolute;
+            top: 18px;
+            left: 20px;
+            font-size: 1.05rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .real-clock:hover { color: white; transform: scale(1.05); }
+
+        /* Gornje ikonice (Gore desno) */
+        .top-buttons {
+            position: absolute;
+            top: 18px;
+            right: 20px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .icon-btn:hover { color: white; transform: scale(1.1); }
+
+        .greeting {
+            font-size: 1rem;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+            opacity: 0.85;
+            margin-top: 15px; 
+        }
+
+        .modes {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            background: rgba(0,0,0,0.3);
+            padding: 5px;
+            border-radius: 30px;
+            margin-bottom: 5px;
+        }
+
+        .mode-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn:hover { color: white; }
+        .mode-btn.active {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* --- GLAVNO VRIJEME (Povećano i istaknuto) --- */
+        .time-display {
+            font-size: 6.2rem; /* Značajno veći font */
+            font-weight: 700;
+            letter-spacing: -3px; /* Zbijeno da stane u widget */
+            line-height: 1; /* Sprečava da visina fonta raširi kontejner previše */
+            margin: 5px 0 10px 0;
+            /* Dupla sjena: Snažna crna za kontrast + blagi bijeli sjaj */
+            text-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 35px rgba(255, 255, 255, 0.15);
+            font-variant-numeric: tabular-nums;
+            color: #ffffff;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .control-btn {
+            border: none;
+            border-radius: 50px;
+            padding: 12px 26px;
+            font-family: inherit;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-main { background: var(--primary-btn); color: var(--primary-btn-text); box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2); }
+        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 255, 255, 0.4); background: white; }
+        .btn-secondary { background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.2); }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.25); }
+        #pause { display: none; }
+
+        /* --- STATUS BAR (CILJ) --- */
+        .progress-wrapper {
+            margin-top: 5px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: left;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            font-weight: 400;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.4);
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, rgba(255,255,255,0.7), #ffffff);
+            border-radius: 20px;
+            transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+        }
+
+        .progress-fill.completed {
+            background: linear-gradient(90deg, #f6d365 0%, #fda085 100%);
+            box-shadow: 0 0 15px rgba(246, 211, 101, 0.6);
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 10px rgba(246, 211, 101, 0.4); }
+            50% { box-shadow: 0 0 20px rgba(246, 211, 101, 0.8); }
+            100% { box-shadow: 0 0 10px rgba(246, 211, 101, 0.4); }
+        }
+
+        .progress-motivation {
+            font-size: 0.75rem;
+            font-weight: 300;
+            opacity: 0.7;
+            margin-top: 6px;
+            text-align: right;
+        }
+
+        /* --- MENIJI --- */
+        .menu-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .menu-content {
+            background: rgba(20, 20, 20, 0.95);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            width: 90%;
+            max-width: 340px;
+            text-align: left;
+        }
+
+        .menu-content h3 { font-size: 1.1rem; font-weight: 500; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .close-menu { background: transparent; border: none; color: rgba(255,255,255,0.5); font-size: 1.2rem; cursor: pointer; }
+        .close-menu:hover { color: white; }
+
+        .bg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(55px, 1fr)); gap: 10px; max-height: 250px; overflow-y: auto;}
+        .bg-grid::-webkit-scrollbar { width: 4px; }
+        .bg-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+        
+        .bg-item { aspect-ratio: 1; border-radius: 10px; cursor: pointer; border: 2px solid transparent; background-size: cover !important; transition: all 0.2s; }
+        .bg-item:hover { transform: scale(1.08); border-color: rgba(255, 255, 255, 0.8); }
+
+        .setting-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 5px; }
+        .setting-group label { font-size: 0.85rem; color: rgba(255,255,255,0.7); }
+        .setting-group select {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-family: inherit;
+            outline: none;
+            cursor: pointer;
+        }
+        .setting-group select option { background: #222; color: white; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Sitna prilagodba za ekstremno uske Notion stupce */
+        @media (max-width: 350px) {
+            .time-display { font-size: 5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- SAT GORE LIJEVO -->
+        <div class="real-clock" onclick="openClockMenu()" title="Postavke sata">
+            <i class="ph-bold ph-clock"></i> <span id="realClockText">00:00</span>
+        </div>
+
+        <!-- GORNJE IKONICE DESNO -->
+        <div class="top-buttons">
+            <button class="icon-btn" onclick="openMenu('goalMenuOverlay')" title="Postavi dnevni cilj">
+                <i class="ph-bold ph-target"></i>
+            </button>
+            <button class="icon-btn" onclick="openMenu('bgMenuOverlay')" title="Promijeni pozadinu">
+                <i class="ph-bold ph-palette"></i>
+            </button>
+        </div>
+
+        <div class="greeting" id="greeting">Vrijeme je za fokus.</div>
+        
+        <div class="modes">
+            <button class="mode-btn active" id="pomodoro" onclick="switchMode('pomodoro')">Fokus</button>
+            <button class="mode-btn" id="short" onclick="switchMode('short')">Kratka pauza</button>
+            <button class="mode-btn" id="long" onclick="switchMode('long')">Duga pauza</button>
+        </div>
+
+        <!-- GLAVNO VRIJEME -->
+        <div class="time-display" id="time">25:00</div>
+
+        <div class="controls">
+            <button class="control-btn btn-main" id="start" onclick="startTimer()">
+                <i class="ph-fill ph-play"></i> Start
+            </button>
+            <button class="control-btn btn-main" id="pause" onclick="pauseTimer()">
+                <i class="ph-fill ph-pause"></i> Pauza
+            </button>
+            <button class="control-btn btn-secondary" onclick="resetTimer()">
+                <i class="ph-bold ph-arrow-counter-clockwise"></i>
+            </button>
+        </div>
+
+        <!-- STATUS BAR -->
+        <div class="progress-wrapper">
+            <div class="progress-header">
+                <span>Dnevni cilj</span>
+                <span id="progress-text">0 / 4</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="progress-motivation" id="progress-motivation">Spreman za rad?</div>
+        </div>
+    </div>
+
+    <!-- Meni za postavljanje SATA -->
+    <div class="menu-overlay" id="clockMenuOverlay" onclick="closeMenu(event, 'clockMenuOverlay')">
+        <div class="menu-content">
+            <h3>Postavke Sata <button class="close-menu" onclick="document.getElementById('clockMenuOverlay').style.display='none'"><i class="ph-bold ph-x"></i></button></h3>
+            
+            <div class="setting-group">
+                <label>Format vremena</label>
+                <select id="timeFormatSelect" onchange="saveClockSettings()">
+                    <option value="24">24-satni (14:30)</option>
+                    <option value="12">12-satni (2:30 PM)</option>
+                </select>
+            </div>
+
+            <div class="setting-group" style="margin-bottom: 20px;">
+                <label>Vremenska zona</label>
+                <select id="timezoneSelect" onchange="saveClockSettings()">
+                    <option value="local">🌍 Tvoje lokalno vrijeme (Auto)</option>
+                    <option value="Europe/Zagreb">🇭🇷 Zagreb / Srednja Europa</option>
+                    <option value="Europe/London">🇬🇧 London</option>
+                    <option value="America/New_York">🇺🇸 New York</option>
+                    <option value="America/Los_Angeles">🇺🇸 Los Angeles</option>
+                    <option value="Asia/Tokyo">🇯🇵 Tokyo</option>
+                    <option value="Australia/Sydney">🇦🇺 Sydney</option>
+                </select>
+            </div>
+
+            <button class="control-btn btn-main" style="width: 100%; justify-content: center;" onclick="document.getElementById('clockMenuOverlay').style.display='none'">Zatvori</button>
+        </div>
+    </div>
+
+    <!-- Meni za pozadine -->
+    <div class="menu-overlay" id="bgMenuOverlay" onclick="closeMenu(event, 'bgMenuOverlay')">
+        <div class="menu-content">
+            <h3>Izgled <button class="close-menu" onclick="document.getElementById('bgMenuOverlay').style.display='none'"><i class="ph-bold ph-x"></i></button></h3>
+            <div class="bg-grid" id="bgGrid"></div>
+        </div>
+    </div>
+
+    <!-- Meni za cilj -->
+    <div class="menu-overlay" id="goalMenuOverlay" onclick="closeMenu(event, 'goalMenuOverlay')">
+        <div class="menu-content" style="text-align: center;">
+            <h3>Cilj fokusa <button class="close-menu" onclick="document.getElementById('goalMenuOverlay').style.display='none'"><i class="ph-bold ph-x"></i></button></h3>
+            <p style="opacity: 0.8; margin-bottom: 20px; font-size: 0.9rem;">Koliko sesija želiš danas odraditi?</p>
+            
+            <div style="display: flex; justify-content: center; align-items: center; gap: 20px; margin-bottom: 25px;">
+                <button class="control-btn btn-secondary" style="padding: 10px 16px;" onclick="changeGoalModalValue(-1)"><i class="ph-bold ph-minus"></i></button>
+                <span id="modalGoalValue" style="font-size: 2.2rem; font-weight: 700;">4</span>
+                <button class="control-btn btn-secondary" style="padding: 10px 16px;" onclick="changeGoalModalValue(1)"><i class="ph-bold ph-plus"></i></button>
+            </div>
+
+            <button class="control-btn btn-main" style="width: 100%; justify-content: center;" onclick="saveGoal()">Spremi cilj</button>
+        </div>
+    </div>
+
+    <!-- Zvuk alarma -->
+    <audio id="alarmSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+
+    <script>
+        // --- LOGIKA SATA ---
+        let clockFormat = localStorage.getItem('pomodoro-clock-format') || '24';
+        let clockTimezone = localStorage.getItem('pomodoro-timezone') || 'local';
+
+        function updateRealClock() {
+            const now = new Date();
+            let options = { hour: 'numeric', minute: '2-digit', hour12: clockFormat === '12' };
+            if (clockTimezone !== 'local') options.timeZone = clockTimezone;
+
+            try {
+                let timeString = new Intl.DateTimeFormat('hr-HR', options).format(now).replace(/\./g, '').toUpperCase();
+                document.getElementById('realClockText').innerText = timeString;
+            } catch (e) {
+                document.getElementById('realClockText').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            }
+        }
+        setInterval(updateRealClock, 1000);
+        updateRealClock();
+
+        function saveClockSettings() {
+            clockFormat = document.getElementById('timeFormatSelect').value;
+            clockTimezone = document.getElementById('timezoneSelect').value;
+            localStorage.setItem('pomodoro-clock-format', clockFormat);
+            localStorage.setItem('pomodoro-timezone', clockTimezone);
+            updateRealClock();
+        }
+
+        function openClockMenu() {
+            document.getElementById('timeFormatSelect').value = clockFormat;
+            document.getElementById('timezoneSelect').value = clockTimezone;
+            document.getElementById('clockMenuOverlay').style.display = 'flex';
+        }
+
+        // --- POMODORO LOGIKA ---
+        const modes = { pomodoro: 25, short: 5, long: 15 };
+        let currentMode = 'pomodoro';
+        let timeLeft = modes.pomodoro * 60;
+        let timerInterval = null;
+        let isRunning = false;
+
+        const timeElement = document.getElementById('time');
+        const startBtn = document.getElementById('start');
+        const pauseBtn = document.getElementById('pause');
+        const alarmSound = document.getElementById('alarmSound');
+
+        // --- LOGIKA ZA CILJ ---
+        let dailyGoal = parseInt(localStorage.getItem('pomodoro-goal')) || 4;
+        let completedSessions = parseInt(localStorage.getItem('pomodoro-completed')) || 0;
+        let lastDate = localStorage.getItem('pomodoro-date') || new Date().toDateString();
+
+        if (lastDate !== new Date().toDateString()) {
+            completedSessions = 0;
+            localStorage.setItem('pomodoro-completed', 0);
+            localStorage.setItem('pomodoro-date', new Date().toDateString());
+        }
+        let tempModalGoal = dailyGoal;
+
+        function updateProgressUI() {
+            const percentage = Math.min((completedSessions / dailyGoal) * 100, 100);
+            const fillElement = document.getElementById('progress-fill');
+            const motivationElement = document.getElementById('progress-motivation');
+
+            document.getElementById('progress-text').innerText = `${completedSessions} / ${dailyGoal}`;
+            fillElement.style.width = `${percentage}%`;
+
+            if (percentage >= 100) {
+                fillElement.classList.add('completed');
+                motivationElement.innerText = "Cilj ispunjen! Svaka čast. 🎉";
+            } else {
+                fillElement.classList.remove('completed');
+                if (completedSessions === 0) motivationElement.innerText = "Spreman za prvi fokus danas?";
+                else if (percentage < 50) motivationElement.innerText = "Samo naprijed, ide ti odlično!";
+                else if (percentage < 90) motivationElement.innerText = "Već si na pola puta. Fokus!";
+                else motivationElement.innerText = "Skoro gotovo, još samo malo!";
+            }
+        }
+        updateProgressUI();
+
+        function changeGoalModalValue(amount) {
+            if (tempModalGoal + amount > 0) {
+                tempModalGoal += amount;
+                document.getElementById('modalGoalValue').innerText = tempModalGoal;
+            }
+        }
+
+        function saveGoal() {
+            dailyGoal = tempModalGoal;
+            localStorage.setItem('pomodoro-goal', dailyGoal);
+            updateProgressUI();
+            document.getElementById('goalMenuOverlay').style.display = 'none';
+        }
+
+        function setGreeting() {
+            const hour = new Date().getHours();
+            const greetingElement = document.getElementById('greeting');
+            if (hour < 12) greetingElement.innerText = "Dobro jutro. Zadrži fokus.";
+            else if (hour < 18) greetingElement.innerText = "Dobar dan. Vrijeme je za rad.";
+            else greetingElement.innerText = "Dobra večer. Još malo pa odmor.";
+        }
+        setGreeting();
+
+        function updateDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timeElement.innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.title = `${timeElement.innerText} - Fokus`;
+        }
+
+        function switchMode(mode) {
+            pauseTimer();
+            currentMode = mode;
+            timeLeft = modes[mode] * 60;
+            updateDisplay();
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(mode).classList.add('active');
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+            isRunning = true;
+            startBtn.style.display = 'none';
+            pauseBtn.style.display = 'flex';
+            
+            timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    updateDisplay();
+                } else {
+                    pauseTimer();
+                    alarmSound.play();
+                    if(currentMode === 'pomodoro') {
+                        completedSessions++;
+                        localStorage.setItem('pomodoro-completed', completedSessions);
+                        updateProgressUI();
+                    }
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            isRunning = false;
+            clearInterval(timerInterval);
+            startBtn.style.display = 'flex';
+            pauseBtn.style.display = 'none';
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            timeLeft = modes[currentMode] * 60;
+            updateDisplay();
+        }
+        updateDisplay();
+
+        // --- POZADINE ---
+        const backgrounds =[
+            "url('https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1920&q=80')",
+            "url('https://images.unsplash.com/photo-1470071131384-001b85755b36?auto=format&fit=crop&w=1920&q=80')",
+            "url('https://images.unsplash.com/photo-1431274172761-fce413f64343?auto=format&fit=crop&w=1920&q=80')",
+            "url('https://images.unsplash.com/photo-1534050209994-dc81440ea864?auto=format&fit=crop&w=1920&q=80')",
+            "url('https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?auto=format&fit=crop&w=1920&q=80')",
+            "url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1920&q=80')",
+            "url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=1920&q=80')",
+            "url('https://images.unsplash.com/photo-1511884642898-4c92249e20b6?auto=format&fit=crop&w=1920&q=80')",
+            "url('https://images.unsplash.com/photo-1483728642387-6c3bf6c11b73?auto=format&fit=crop&w=1920&q=80')",
+            "url('https://images.unsplash.com/photo-1506744090020-80411109b68a?auto=format&fit=crop&w=1920&q=80')",
+            "url('https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1920&q=80')",
+            "url('https://images.unsplash.com/photo-1518005020951-eccb125c1ce4?auto=format&fit=crop&w=1920&q=80')",
+            "url('https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1920&q=80')",
+            "url('https://images.unsplash.com/photo-1557672172-298e090bd0f1?auto=format&fit=crop&w=1920&q=80')",
+            "url('https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?auto=format&fit=crop&w=1920&q=80')",
+            "url('https://images.unsplash.com/photo-1500462918059-b1a0cb512f1d?auto=format&fit=crop&w=1920&q=80')",
+            "url('https://images.unsplash.com/photo-1495539406979-bf61ceb6e11c?auto=format&fit=crop&w=1920&q=80')",
+            "linear-gradient(135deg, #0f2027, #203a43, #2c5364)",
+            "linear-gradient(135deg, #1e130c, #9a8478)",
+            "#191919"
+        ];
+
+        function changeBackground(bgValue) {
+            if(bgValue.startsWith('url')) {
+                document.body.style.background = `linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), ${bgValue} center/cover no-repeat fixed`;
+            } else {
+                document.body.style.background = bgValue;
+            }
+            localStorage.setItem('pomodoro-aesthetic-bg', bgValue);
+        }
+
+        const grid = document.getElementById('bgGrid');
+        backgrounds.forEach(bg => {
+            const div = document.createElement('div');
+            div.className = 'bg-item';
+            if(bg.startsWith('url')) {
+                let thumbUrl = bg.replace('w=1920', 'w=200').replace('q=80', 'q=50');
+                div.style.background = thumbUrl;
+            } else {
+                div.style.background = bg;
+            }
+            div.onclick = () => changeBackground(bg);
+            grid.appendChild(div);
+        });
+
+        function openMenu(menuId) {
+            if(menuId === 'goalMenuOverlay') {
+                document.getElementById('modalGoalValue').innerText = dailyGoal;
+                tempModalGoal = dailyGoal;
+            }
+            document.getElementById(menuId).style.display = 'flex';
+        }
+
+        function closeMenu(event, menuId) {
+            if(event.target.id === menuId) {
+                document.getElementById(menuId).style.display = 'none';
+            }
+        }
+
+        const savedBg = localStorage.getItem('pomodoro-aesthetic-bg');
+        if (savedBg) changeBackground(savedBg);
+        else changeBackground(backgrounds[0]);
+
+    </script>
+</body>
+</html>
